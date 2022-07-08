@@ -1,48 +1,35 @@
 function reverseString(s) {
-  let arr = s.split('');
-  arr = arr.reverse();
-  return arr.join('');
-}
-
-function compareEdge(a, b) {
-  return a == reverseString(b);
+  return s.split('').reverse().join('');
 }
 
 class Tile {
-  constructor(img, edges, i) {
+  constructor(img, edges) {
     this.img = img;
     this.edges = edges;
     this.up = [];
     this.right = [];
     this.down = [];
     this.left = [];
-
-    if (i !== undefined) {
-      this.index = i;
-    }
   }
 
   analyze(tiles) {
     for (let i = 0; i < tiles.length; i++) {
+      // console.log("tile: " + i)
       let tile = tiles[i];
-
-      // Tile 5 can't match itself
-      if (tile.index == 5 && this.index == 5) continue;
-
       // UP
-      if (compareEdge(tile.edges[2], this.edges[0])) {
+      if (ImEdges.edgesEqual(tile.edges.Bottom, this.edges.Top)) {
         this.up.push(i);
       }
       // RIGHT
-      if (compareEdge(tile.edges[3], this.edges[1])) {
+      if (ImEdges.edgesEqual(tile.edges.Left, this.edges.Right)) {
         this.right.push(i);
       }
       // DOWN
-      if (compareEdge(tile.edges[0], this.edges[2])) {
+      if (ImEdges.edgesEqual(tile.edges.Top, this.edges.Bottom)) {
         this.down.push(i);
       }
       // LEFT
-      if (compareEdge(tile.edges[1], this.edges[3])) {
+      if (ImEdges.edgesEqual(tile.edges.Right, this.edges.Left)) {
         this.left.push(i);
       }
     }
@@ -57,11 +44,12 @@ class Tile {
     newImg.rotate(HALF_PI * num);
     newImg.image(this.img, 0, 0);
 
-    const newEdges = [];
-    const len = this.edges.length;
+    const newEdges = new ImEdges();
+    const len = ImEdges.sides.length;
     for (let i = 0; i < len; i++) {
-      newEdges[i] = this.edges[(i - num + len) % len];
+      let new_edge_ind = (i+num) % len;
+      newEdges[ImEdges.sides[new_edge_ind]] = this.edges[ImEdges.sides[i]];
     }
-    return new Tile(newImg, newEdges, this.index);
+    return new Tile(newImg, newEdges);
   }
 }
