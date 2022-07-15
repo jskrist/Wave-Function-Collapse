@@ -1,1 +1,5 @@
 .DS_Store
+jsconfig.json
+style.css
+libraries/p5.min.js
+libraries/p5.sound.min.js
