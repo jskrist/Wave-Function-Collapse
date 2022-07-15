@@ -35,8 +35,6 @@ function addToTileImages(im) {
 }
 
 function asyncSetup() {
-  randomSeed(0);
-
   // Loaded and created the tiles in preload()
   // process the edges of each image now
   for (let im of tileImages) {
@@ -90,7 +88,7 @@ function removeDuplicatedTiles(tiles) {
 }
 
 function startOver() {
-  randomSeed(seed);
+  // randomSeed(seed);
   grid = [];
   // Create cell for each spot on the grid
   for (let i = 0; i < DIM * DIM; i++) {
@@ -127,9 +125,6 @@ function draw() {
 
   if (stopIndex > 0) gridCopy.splice(stopIndex);
   const cell = random(gridCopy);
-  if(cell === grid[135]) {
-    console.log('found it')
-  }
   cell.collapsed = true;
   const pick = random(cell.options);
   if (pick === undefined) {
@@ -137,6 +132,7 @@ function draw() {
     return;
   }
   cell.options = [pick];
+
 
   let nextGrid = [];
   for (let j = 0; j < DIM; j++) {
@@ -167,7 +163,7 @@ function draw() {
           validOptions = combineOptions(left.options, 'right', validOptions);
         }
         if(validOptions.size == 0) {
-          validOptions = Array(tiles.length).fill(0).map((x,i) => i);
+          validOptions = [undefined]; //Array(tiles.length).fill(0).map((x,i) => i);
         }
 
         // I could immediately collapse if only one option left?
