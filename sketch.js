@@ -7,7 +7,8 @@ let seed = 8;
 const DIM = 20;
 
 function setup() {
-  createCanvas(400, 400);
+  const canvas = createCanvas(400, 400);
+  canvas.parent('canvas');
   startOver();
   noLoop();
   drawBackground();
