@@ -12,7 +12,7 @@ let h;
 
 function setup() {
   noLoop();
-  const canvas = createCanvas(400, 400);
+  const canvas = createCanvas(600, 400);
   canvas.parent('canvas');
   w = width / DIM_X;
   h = height / DIM_Y;
@@ -140,13 +140,13 @@ function draw() {
   // cut off all the cells that have more options than the first cell
   if (stopIndex > 0) gridCopy.splice(stopIndex);
 
-  // select a random cell to collapse
-  const cell = random(gridCopy);
-  // collapse it by picking a random option from its remaining options
-  cell.collapsed = true;
-  const pick = random(cell.options);
-  cell.options = [pick];
-
+    // select a random cell to collapse
+    const cell = random(gridCopy);
+    // collapse it by picking a random option from its remaining options
+    cell.collapsed = true;
+    const pick = random(cell.options);
+    cell.options = [pick];
+    
   // update cell valid options
   updateValidNeighbors();
 }
