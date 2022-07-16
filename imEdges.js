@@ -96,16 +96,18 @@ class ImEdges {
         // rgba_str == ['1,1,1,1', '1,1,1,1', '1,1,1,1', '1,2,2,2', '10,255,0,255', '10,255,0,255']
         // =>
         // ['3,1,1,1,1', '1,1,2,2,2', '2,10,255,0,255']
+        const thresh = 1/1024;
         let rgba_encoded_str = [];
         let num_current_pattern = 1;
         let current_pattern = rgba_str[0];
         for(let pattern of rgba_str.slice(1)) {
-            if(current_pattern == pattern) {
+            // find the color distance
+            let colorDist = ImEdges.colorDistance(current_pattern, pattern);
+            if(colorDist < thresh) {
+            // if(current_pattern == pattern) {
                 num_current_pattern++;
             }
             else {
-                // find the color distance
-                // let colorDist = ImEdges.colorDistance(current_pattern, pattern);
                 // console.log(colorDist)
                 // ignore one pixel patterns
                 if(num_current_pattern != 1) {

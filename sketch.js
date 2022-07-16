@@ -4,16 +4,24 @@ let fileList = [];
 let grid = [];
 let seed = 8;
 
-const DIM = 20;
+const DEBUG = false;
+const DIM_X = 30;
+const DIM_Y = 20;
+let w;
+let h;
 
 function setup() {
+  noLoop();
   const canvas = createCanvas(400, 400);
   canvas.parent('canvas');
+  w = width / DIM_X;
+  h = height / DIM_Y;
   startOver();
-  noLoop();
   drawBackground();
   const inputElement = document.getElementById("tileImages");
   inputElement.addEventListener("change", loadSelectedImages, false);
+  textAlign(LEFT, TOP);
+  textSize(8);
 }
 
 function loadSelectedImages() {
@@ -75,7 +83,7 @@ function asyncSetup() {
   }
 
   startOver();
-  // noLoop();
+  if(!DEBUG) loop();
 }
 
 function removeDuplicatedTiles(tiles) {
@@ -88,32 +96,39 @@ function removeDuplicatedTiles(tiles) {
 }
 
 function startOver() {
-  // randomSeed(seed);
+  if(DEBUG) randomSeed(seed);
   grid = [];
   // Create cell for each spot on the grid
-  for (let i = 0; i < DIM * DIM; i++) {
+  for (let i = 0; i < DIM_X * DIM_Y; i++) {
     grid[i] = new Cell(tiles.length);
   }
-  loop();
+  // loop();
 }
 
 function draw() {
-  
+  if(tiles.length < 1) {
+    return;
+  }
   drawBackground();
+  if(DEBUG) drawNumOptions();
 
   // Pick cell with least entropy
+  // first get a list of only the un-collapsed cells
   let gridCopy = grid.slice();
   gridCopy = gridCopy.filter((a) => !a.collapsed);
-
+  // if there aren't any, then the image is complete, so we can stop now
   if (gridCopy.length == 0) {
     console.log('Image Complete');
     noLoop();
     return;
   }
+  // sort the list by the number of options remaining for each cell
   gridCopy.sort((a, b) => {
     return a.options.length - b.options.length;
   });
-
+  // get the number of options in the first cell (which will now contain the
+  // lowest nunmber of options), and figure out how many more cells have the
+  // same number of options left
   let len = gridCopy[0].options.length;
   let stopIndex = 0;
   for (let i = 0; i < gridCopy.length; i++) {
@@ -122,67 +137,26 @@ function draw() {
       break;
     }
   }
-
+  // cut off all the cells that have more options than the first cell
   if (stopIndex > 0) gridCopy.splice(stopIndex);
+
+  // select a random cell to collapse
   const cell = random(gridCopy);
+  // collapse it by picking a random option from its remaining options
   cell.collapsed = true;
   const pick = random(cell.options);
-  if (pick === undefined) {
-    startOver();
-    return;
-  }
   cell.options = [pick];
 
-
-  let nextGrid = [];
-  for (let j = 0; j < DIM; j++) {
-    for (let i = 0; i < DIM; i++) {
-      let index = i + j * DIM;
-      if (grid[index].collapsed) {
-        nextGrid[index] = grid[index];
-      } else {
-        let validOptions = new Set();
-        // Look up
-        if (j > 0) {
-          let up = grid[i + (j - 1) * DIM];
-          validOptions = combineOptions(up.options, 'down', validOptions);
-        }
-        // Look right
-        if (i < DIM - 1) {
-          let right = grid[i + 1 + j * DIM];
-          validOptions = combineOptions(right.options, 'left', validOptions);
-        }
-        // Look down
-        if (j < DIM - 1) {
-          let down = grid[i + (j + 1) * DIM];
-          validOptions = combineOptions(down.options, 'up', validOptions);
-        }
-        // Look left
-        if (i > 0) {
-          let left = grid[i - 1 + j * DIM];
-          validOptions = combineOptions(left.options, 'right', validOptions);
-        }
-        if(validOptions.size == 0) {
-          validOptions = [undefined]; //Array(tiles.length).fill(0).map((x,i) => i);
-        }
-
-        // I could immediately collapse if only one option left?
-        nextGrid[index] = new Cell(Array.from(validOptions));
-      }
-    }
-  }
-
-  grid = nextGrid;
+  // update cell valid options
+  updateValidNeighbors();
 }
 
 function drawBackground() {
   background(0);
 
-  const w = width / DIM;
-  const h = height / DIM;
-  for (let j = 0; j < DIM; j++) {
-    for (let i = 0; i < DIM; i++) {
-      let cell = grid[i + j * DIM];
+  for (let j = 0; j < DIM_Y; j++) {
+    for (let i = 0; i < DIM_X; i++) {
+      let cell = grid[xy2ind(i, j)];
       if (cell.collapsed) {
         let index = cell.options[0];
         image(tiles[index].img, i * w, j * h, w, h);
@@ -195,18 +169,22 @@ function drawBackground() {
   }
 }
 
+function drawNumOptions() {
+  fill(255);
+  for(let y = 0; y < DIM_Y; y++) {
+    for(let x = 0; x < DIM_X; x++) {
+      text(grid[x + y * DIM_X].options.length, x*w, y*h);
+    }
+  }
+}
+
 function combineOptions(optionsToCheck, directionToCheck, validOptions = new Set()) {
   let tmpValidOptions = new Set();
   for (let option of optionsToCheck) {
     let valid = tiles[option][directionToCheck];
     valid.forEach(x => {tmpValidOptions.add(x)})
   }
-  if(validOptions.size > 0) {
-    return intersection(validOptions, tmpValidOptions);
-  }
-  else {
-    return tmpValidOptions;
-  }
+  return intersection(validOptions, tmpValidOptions);
 }
 
 function intersection(setA, setB) {
@@ -219,11 +197,159 @@ function intersection(setA, setB) {
   return _intersection;
 }
 
+function updateValidNeighbors(tryToReset = true) {
+  toUpdate = [];
+  for (let y = 0; y < DIM_Y; y++) {
+    for (let x = 0; x < DIM_X; x++) {
+      let index = xy2ind(x, y);
+      let cell = grid[index];
+      if (!cell.collapsed) {
+        // start out assuming all options are valid
+        let validOptions = new Set(Array(tiles.length).fill(0).map((x,i) => i));
+        // Look up
+        if (y > 0) {
+          let up = grid[xy2ind(x, y - 1)];
+          validOptions = combineOptions(up.options, 'down', validOptions);
+        }
+        // Look right
+        if (x < DIM_X - 1) {
+          let right = grid[xy2ind(x + 1, y)];
+          validOptions = combineOptions(right.options, 'left', validOptions);
+        }
+        // Look down
+        if (y < DIM_Y - 1) {
+          let down = grid[xy2ind(x, y + 1)];
+          validOptions = combineOptions(down.options, 'up', validOptions);
+        }
+        // Look left
+        if (x > 0) {
+          let left = grid[xy2ind(x - 1, y)];
+          validOptions = combineOptions(left.options, 'right', validOptions);
+        }
+        // if there are no valid options, then we need to deal with that
+        if(validOptions.size == 0) {
+          if(DEBUG) console.log('no valid options [' + x + ', ' + y + ']');
+          // start over
+          startOver();
+          return;
+        }
+        // save the index and options for later
+        toUpdate.push([index, validOptions]);
+      }
+    }
+  }
+  for (updateData of toUpdate) {
+    // delete old cell and replace it with a new one
+    delete grid[updateData[0]]
+    grid[updateData[0]] = new Cell(Array.from(updateData[1]));
+  }
+}
+
+function getIndicesFromCell(cell) {
+  let x = undefined;
+  let y = undefined;
+  for(let ind = 0; ind < grid.length; ind++) {
+    if(grid[ind] == cell) {
+      x = ind % DIM_X;
+      y = Math.floor(ind / DIM_X);
+      break;
+    }
+  }
+  return {x, y};
+}
+
+function xy2ind(x,y) {
+  return x + (y * DIM_X);
+}
+
+function resetCellAndNeighbors(cell) {
+  // originally intended to reset just the cell and its neighbors, it
+  // seems that this function may also need to clear a line to an edge
+  inds = getIndicesFromCell(cell);
+  let x = inds.x;
+  let y = inds.y;
+
+  allOptions = Array(tiles.length).fill(0).map((x,i) => i);
+  // un-collapse cell;
+  cell.collapsed = false;
+  cell.options = allOptions.slice();
+  // un-collapse neighbors
+  // Up Neighbor
+  if(y > 0) {
+    let up = grid[xy2ind(x, y - 1)];
+    up.collapsed = false;
+    up.options = allOptions.slice();
+  }
+  if (y > 0 && x < DIM_X - 1) {
+    let upright = grid[xy2ind(x + 1, y - 1)];
+    upright.collapsed = false;
+    upright.options = allOptions.slice();
+  }
+  // Right Neighbor
+  if (x < DIM_X - 1) {
+    let right = grid[xy2ind(x + 1, y)];
+    right.collapsed = false;
+    right.options = allOptions.slice();
+  }
+  if (y < DIM_Y - 1 && x < DIM_X - 1) {
+    let downright = grid[xy2ind(x + 1, y + 1)];
+    downright.collapsed = false;
+    downright.options = allOptions.slice();
+  }
+  // Down Neighbor
+  if (y < DIM_Y - 1) {
+    let down = grid[xy2ind(x, y + 1)];
+    down.collapsed = false;
+    down.options = allOptions.slice();
+  }
+  if (y < DIM_Y - 1 && x > 0) {
+    let downleft = grid[xy2ind(x - 1, y + 1)];
+    downleft.collapsed = false;
+    downleft.options = allOptions.slice();
+  }
+  // Left Neighbor
+  if (x > 0) {
+    let left = grid[xy2ind(x - 1, y)];
+    left.collapsed = false;
+    left.options = allOptions.slice();
+  }
+  if (y > 0 && x > 0) {
+    let upleft = grid[xy2ind(x - 1, y - 1)];
+    upleft.collapsed = false;
+    upleft.options = allOptions.slice();
+  }
+  // clear a line to each edge
+  let dw = DIM_X - x;
+  let dh = DIM_Y - y;
+  // clear path to the left edge of the grid
+  for(let i = 2; i < x; i++) {
+    let tmp_cell = grid[xy2ind(x - i, y)];
+    tmp_cell.collapsed = false;
+    tmp_cell.options = allOptions.slice();
+  }
+  // clear path to the top edge of the grid
+  for(let j = 2; j < y; j++) {
+    let tmp_cell = grid[xy2ind(x, y - j)];
+    tmp_cell.collapsed = false;
+    tmp_cell.options = allOptions.slice();
+  }
+  // clear path to the right edge of the grid
+  for(let i = 2; i < dw; i++) {
+    let tmp_cell = grid[xy2ind(x + i, y)];
+    tmp_cell.collapsed = false;
+    tmp_cell.options = allOptions.slice();
+  }
+  // clear path to the bottom edge of the grid
+  for(let j = 2; j < dh; j++) {
+    let tmp_cell = grid[xy2ind(x, y + j)];
+    tmp_cell.collapsed = false;
+    tmp_cell.options = allOptions.slice();
+  }
+}
+
 function showNeighbors(tile) {
   drawBackground();
   thisTile = tiles[tile];
-  w = width / DIM;
-  h = height / DIM;
   // show this tile in the center
   image(thisTile.img, 15*w, 15*h, w, h)
   // top neighbors
@@ -245,13 +371,11 @@ function showNeighbors(tile) {
 }
 
 function showAllTiles() {
-  w = width / DIM;
-  h = height / DIM;
   for(let i = 0; i < tiles.length; i++) {
-    image(tiles[i].img, (i % 25) * w, (20 + (i >= 25)) * h, w, h)
+    image(tiles[i].img, (i % DIM_X) * w, (i >= DIM_X) * h, w, h)
   }
 }
 
-// function mousePressed() {
-//   redraw();
-// }
+function mousePressed() {
+  if(DEBUG) redraw();
+}
