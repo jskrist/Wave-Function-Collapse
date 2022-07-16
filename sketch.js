@@ -146,7 +146,7 @@ function draw() {
     cell.collapsed = true;
     const pick = random(cell.options);
     cell.options = [pick];
-    
+
   // update cell valid options
   updateValidNeighbors();
 }
@@ -350,23 +350,26 @@ function resetCellAndNeighbors(cell) {
 function showNeighbors(tile) {
   drawBackground();
   thisTile = tiles[tile];
-  // show this tile in the center
-  image(thisTile.img, 15*w, 15*h, w, h)
+  // show this tile in the center 
+  let centerX = floor(DIM_X/2);
+  let centerY = floor(DIM_Y/2);
+
+  image(thisTile.img, centerX*w, centerY*h, w, h)
   // top neighbors
   for(let i = 0; i < thisTile.up.length; i++) {
-    image(tiles[thisTile.up[i]].img, 15*w, (14 - i) * h, w, h)
+    image(tiles[thisTile.up[i]].img, centerX*w, (centerY - 1 - i) * h, w, h)
   }
   // right neighbors
   for(let i = 0; i < thisTile.right.length; i++) {
-    image(tiles[thisTile.right[i]].img, (16+i)*w, 15 * h, w, h)
+    image(tiles[thisTile.right[i]].img, (centerX + 1 + i)*w, centerY * h, w, h)
   }
   // bottom neighbors
   for(let i = 0; i < thisTile.down.length; i++) {
-    image(tiles[thisTile.down[i]].img, 15*w, (16+i) * h, w, h)
+    image(tiles[thisTile.down[i]].img, centerX*w, (centerY + 1 + i) * h, w, h)
   }
   // left neighbors
   for(let i = 0; i < thisTile.left.length; i++) {
-    image(tiles[thisTile.left[i]].img, (14-i)*w, 15 * h, w, h)
+    image(tiles[thisTile.left[i]].img, (centerX - 1 - i)*w, centerY * h, w, h)
   }
 }
 

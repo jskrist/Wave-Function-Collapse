@@ -67,7 +67,7 @@ class ImEdges {
         // if the corresponding lengths are not within ~1% of the
         // maximum total length, the edges don't match
         for(let i = 0; i < edge1Lengths.length; i++) {
-            if(abs(edge1Lengths[i] - edge2Lengths[i]) > (maxLength * 0.0093625)) {
+            if(abs(edge1Lengths[i] - edge2Lengths[i]) > ceil(maxLength * 0.0093625)) {
                 return false;
             }
         }
