@@ -13,15 +13,11 @@ Straight out of quantum mechanics, Wave Function Collapse is an algorithm for pr
 ### Completed
 
 - [x] Implementation of Tile Model (see: https://youtu.be/rI_y2GAlQFM)
-
-### Corrections
-
-- [ ] Additional Rules for tiles 4 and 5
-- [ ] Explain how Computed Property Names could have been used (see: https://github.com/CodingTrain/Wave-Function-Collapse/issues/35)
+- [x] Implement auto-edge categorization of tiles.
+- [x] Filter out redundant tiles
 
 ### Next Steps and Refactoring
 
-- [ ] Filter out redundant tiles
 - [ ] Recursive entropy reduction
 - [ ] Shannon entropy
 
